@@ -1,4 +1,3 @@
-// Standard Libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -76,20 +75,41 @@ int FileMove(const char *source, const char *destination)
 /// @brief Create a new empty file inside a destination full path
 /// @param filePath Contains the path where the new file will be created
 /// @param fileName Contains the name of the new file to create
+/// @param fileName Contains the new created destination path
 /// @return 0 = Success; 1 = Error
-int CreateEmptyFile(const char *filePath, const char *fileName)
+void CreateNewDestinationPath(const char *filePath, const char *fileName, char *newPath)
 {
-    char fileFullPath[sizeof(filePath) + sizeof(fileName)];
+    // Calculate the length of the new path
+    size_t filePathLen = strlen(filePath);
+    size_t fileNameLen = strlen(fileName);
+    size_t newPathLen = filePathLen + fileNameLen + 2; // +2 for the '/' and the null terminator
 
-    strcat(fileFullPath, filePath);
-    strcat(fileFullPath, "/");
-    strcat(fileFullPath, fileName);
+    // Allocate memory for the new path
+    newPath[0] = '\0'; // Ensure the newPath is an empty string
+    strcat(newPath, filePath);
 
-    FILE *file = fopen(fileFullPath, "wb");
-
-    if (0 != fclose(file))
+    // If filePath doesn't end with '/', add it
+    if (filePath[filePathLen - 1] != '/')
     {
-        perror("An error occured during the creation of the new empty file!");
+        strcat(newPath, "/");
+    }
+
+    // Append the file name to the new path
+    strcat(newPath, fileName);
+}
+
+/// @brief Create a new empty file inside a destination full path
+/// @param source Contains the full path where the new file will be created
+/// @return 0 = Success; 1 = Error
+int CreateEmptyFile(const char *source)
+{
+    // Create the new empty file
+    FILE *file = fopen(source, "wb");
+
+    // Close the file
+    if (fclose(file) != 0)
+    {
+        perror("An error occurred while closing the file!");
         return 1;
     }
 

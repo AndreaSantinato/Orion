@@ -1,35 +1,101 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <errno.h>
+#include <string.h>
+#include <getopt.h>
+#include <sys/types.h>
 #include "libs/core.h"
-#include "libs/utils.h"
+#include "libs/fileio.h"
 
-/// @brief Update a destination using the file's name included in the source
-/// @param source Contains the source that contains the file's name
-/// @param fileName Indicates the extracted file's name from the source
-void ExtractFileNameFromSource(const char *source, char **fileName)
+/// @brief Defines all the available operations For
+typedef enum OperationTypes
 {
-    // Find the last occurrence of '/' in the source path
-    const char *last_slash = strrchr(source, '/');
+    CopyFile = 0,
+    MoveFile = 1,
+    RemoveFile = 2,
+    CopyDirectory = 3,
+    MoveDirectory = 4,
+    RemoveDirectory = 5
+} OperationTypes;
 
-    if (last_slash == NULL)
+/// @brief Structure Type For A New Operation
+typedef struct Operation
+{
+    OperationTypes type;
+    char *source;
+    char *destination;
+} Operation;
+
+/// @brief Define a new operation structure
+/// @param type Contains the type of the operation
+/// @param source Contains the source of the path/file
+/// @param destination Contains the destination of the path/file
+/// @return A new operation
+Operation NewOperation(OperationTypes type, char *source, char *destination)
+{
+    Operation op = {type, source, destination};
+    return op;
+}
+
+void ValidateOperationArguments(Operation operation)
+{
+    if (operation.source == NULL && operation.destination == NULL)
     {
-        // If no slash is found, copy the entire source path
-        *fileName = malloc(strlen(source) + 1);
-        if (*fileName == NULL)
-        {
-            fprintf(stderr, "Memory allocation failed\n");
-            exit(1);
-        }
-        strcpy(*fileName, source);
+        perror("No valid source and destination provided!");
     }
-    else
+    else if (operation.source == NULL && operation.destination == NULL) 
     {
-        // Copy the filename after the last slash
-        *fileName = malloc(strlen(last_slash + 1) + 1);
-        if (*fileName == NULL)
+        perror("No valid source provided!");
+    }
+    else if (operation.source == NULL && operation.destination == NULL)
+    {
+        perror("No valid destination provided!");
+    }
+
+    if (operation.type == 0 || operation.type == 1 || operation.type == 2)
+    {
+        printf("Source: %s \n", operation.source);
+        printf("Destination: %s \n", operation.destination);
+
+        size_t sourceLen = strlen(operation.source);
+        size_t destLen = strlen(operation.destination);
+
+        // Check if destination ends with '/' or is an empty string
+        if (destLen > 0 && (operation.destination[destLen - 1] == '/' || operation.destination[destLen - 1] == '\0'))
         {
-            fprintf(stderr, "Memory allocation failed\n");
-            exit(1);
-        }
-        strcpy(*fileName, last_slash + 1);
+            const char *lastSlash = strrchr(operation.source, '/');
+
+            if (lastSlash != NULL)
+            {
+                // Calculate the index of the last '/'
+                int lastIndex = lastSlash - operation.source;
+
+                // Extract the substring after the last '/'
+                char *lastPart;
+                SubString(operation.source, lastIndex + 1, sourceLen - lastIndex - 1, &lastPart);
+
+                // Append the extracted substring to the destination
+                char *newDestination;
+                SubString(operation.destination, 0, destLen - 1, &newDestination); // Exclude the trailing '/'
+                strcat(newDestination, "/");
+                strcat(newDestination, lastPart);
+                strcpy(operation.destination, newDestination);
+
+                free(lastPart);
+            }
+            else
+            {
+                strcat(operation.destination, operation.source);
+            }
+        }  
+    }
+    else if (operation.type == 3 || operation.type == 4 || operation.type == 5)
+    {
+        //
+        // ToDo: Add the validations for the directory management
+        //
     }
 }
 
@@ -37,6 +103,8 @@ void ExtractFileNameFromSource(const char *source, char **fileName)
 /// @param operation Contains all the information for an operation
 void ExecuteOperation(Operation operation) 
 {
+    ValidateOperationArguments(operation);
+
     switch (operation.type)
     {
         case 0:
@@ -57,6 +125,12 @@ void ExecuteOperation(Operation operation)
                 FileRemove(operation.source);
                 break;
             }
+        case 3:
+            break;
+        case 4:
+            break;
+        case 5:
+            break;
     }
 }
 
