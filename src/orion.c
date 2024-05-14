@@ -1,14 +1,5 @@
-// Standard Libraries
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <errno.h>
-#include <string.h>
-#include <getopt.h>
-#include <sys/types.h>
-// Custom Libraries
-#include "fileio.h"
+#include "libs/core.h"
+#include "libs/utils.h"
 
 /// @brief Update a destination using the file's name included in the source
 /// @param source Contains the source that contains the file's name
@@ -42,8 +33,36 @@ void ExtractFileNameFromSource(const char *source, char **fileName)
     }
 }
 
+/// @brief Perform the provided operation
+/// @param operation Contains all the information for an operation
+void ExecuteOperation(Operation operation) 
+{
+    switch (operation.type)
+    {
+        case 0:
+            {
+                // Copy
+                FileCopy(operation.source, operation.destination);
+                break;
+            }
+        case 1:
+            {
+                // Move
+                FileMove(operation.source, operation.destination);
+                break;
+            }
+        case 2:
+            {
+                // Remove
+                FileRemove(operation.source);
+                break;
+            }
+    }
+}
+
 // Main entry point of the program
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     if (argc <= 1) 
     {
         fprintf(stderr, "No arguments provided!\n");
@@ -51,55 +70,55 @@ int main(int argc, char *argv[]) {
     }
 
     // Variables Declaration
-    int operation = -1;
-    char *sourceFile = NULL;
-    char *destinationFile = NULL;
+    int operationCode = -1;
+    Operation operation;
 
     // Parse command-line options
-
-    while ((operation = getopt(argc, argv, "c:m:r:")) != -1)
+    while ((operationCode = getopt(argc, argv, "c:m:r:")) != -1)
     {
-        switch (operation)
+        char *sourceFile = NULL;
+        char *destinationFile = NULL;
+
+        switch (operationCode)
         {
             case 'c':
-                sourceFile = optarg;
-                if (!(optind < argc))
                 {
-                    fprintf(stderr, "Missing second file path argument\n");
-                    return 1;
+                    sourceFile = optarg;
+                    if (!(optind < argc))
+                    {
+                        fprintf(stderr, "Missing second file path argument\n");
+                        return 1;
+                    }
+                    destinationFile = argv[optind];
+                    operation = NewOperation(0, optarg, argv[optind]);
+                    break;
                 }
-                destinationFile = argv[optind];
-                break;
             case 'm':
-                sourceFile = optarg;
-                if (!(optind < argc))
                 {
-                    fprintf(stderr, "Missing second file path argument\n");
+                    sourceFile = optarg;
+                    if (!(optind < argc))
+                    {
+                        fprintf(stderr, "Missing second file path argument\n");
+                        return 1;
+                    }
+                    destinationFile = argv[optind];
+                    operation = NewOperation(1, optarg, argv[optind]);
+                    break;
+                }
+            case 'r':
+                {
+                    operation = NewOperation(0, optarg, NULL);
+                    break;
+                }
+            default:
+                {
+                    fprintf(stderr, "Usage: %s -c source_file destination_file | -m source_file destination_file | -r source_file \n", argv[0]);
                     return 1;
                 }
-                destinationFile = argv[optind];
-                break;
-            case 'r':
-                sourceFile = optarg;     
-                break;
-            default:
-                fprintf(stderr, "Usage: %s -c source_file destination_file | -m source_file destination_file | -r source_file \n", argv[0]);
-                return 1;
         }
 
         // Determine which method to call based on the option
-        if (operation == 'c')
-        {
-            FileCopy(sourceFile, destinationFile);   
-        }
-        else if (operation == 'm')
-        {
-            FileMove(sourceFile, destinationFile);
-        }
-        else if (operation == 'r')
-        {
-            FileRemove(sourceFile);
-        }
+        ExecuteOperation(operation);
     }
 
     return 0;
