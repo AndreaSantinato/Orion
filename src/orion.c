@@ -39,13 +39,16 @@ Operation NewOperation(OperationTypes type, char *source, char *destination)
     return op;
 }
 
-void ValidateOperationArguments(Operation operation)
+/// @brief Perform the provided operation
+/// @param operation Contains all the information for an operation
+void ExecuteOperation(Operation operation) 
 {
+    // Perform a set of checks to validate the required operation
     if (operation.source == NULL && operation.destination == NULL)
     {
         perror("No valid source and destination provided!");
     }
-    else if (operation.source == NULL && operation.destination == NULL) 
+    else if (operation.source == NULL && operation.destination == NULL)
     {
         perror("No valid source provided!");
     }
@@ -56,6 +59,10 @@ void ValidateOperationArguments(Operation operation)
 
     if (operation.type == 0 || operation.type == 1 || operation.type == 2)
     {
+        //
+        // File Operation Specific Checks 
+        //
+
         printf("Source: %s \n", operation.source);
         printf("Destination: %s \n", operation.destination);
 
@@ -89,22 +96,20 @@ void ValidateOperationArguments(Operation operation)
             {
                 strcat(operation.destination, operation.source);
             }
-        }  
+        }
     }
     else if (operation.type == 3 || operation.type == 4 || operation.type == 5)
     {
         //
+        // Directory Operation Specific Checks
+        //
+
+        //
         // ToDo: Add the validations for the directory management
         //
     }
-}
 
-/// @brief Perform the provided operation
-/// @param operation Contains all the information for an operation
-void ExecuteOperation(Operation operation) 
-{
-    ValidateOperationArguments(operation);
-
+    // After perform the validation checks, perform the required operation on file/directory
     switch (operation.type)
     {
         case 0:
@@ -134,7 +139,10 @@ void ExecuteOperation(Operation operation)
     }
 }
 
-// Main entry point of the program
+/// @brief Main of the program
+/// @param argc Contains the total number of passed arguments
+/// @param argv Contains the values of passed arguments
+/// @return 
 int main(int argc, char *argv[]) 
 {
     if (argc <= 1) 
