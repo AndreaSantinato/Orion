@@ -9,39 +9,9 @@
 #include "libs/core.h"
 #include "libs/fileio.h"
 
-/// @brief Defines all the available operations For
-typedef enum OperationTypes
-{
-    CopyFile = 0,
-    MoveFile = 1,
-    RemoveFile = 2,
-    CopyDirectory = 3,
-    MoveDirectory = 4,
-    RemoveDirectory = 5
-} OperationTypes;
-
-/// @brief Structure Type For A New Operation
-typedef struct Operation
-{
-    OperationTypes type;
-    char *source;
-    char *destination;
-} Operation;
-
-/// @brief Define a new operation structure
-/// @param type Contains the type of the operation
-/// @param source Contains the source of the path/file
-/// @param destination Contains the destination of the path/file
-/// @return A new operation
-Operation NewOperation(OperationTypes type, char *source, char *destination)
-{
-    Operation op = {type, source, destination};
-    return op;
-}
-
 /// @brief Perform the provided operation
 /// @param operation Contains all the information for an operation
-void ExecuteOperation(Operation operation) 
+void ExecuteOperation(operation operation) 
 {
     // Perform a set of checks to validate the required operation
     if (operation.source == NULL && operation.destination == NULL)
@@ -153,43 +123,45 @@ int main(int argc, char *argv[])
 
     // Variables Declaration
     int operationCode = -1;
-    Operation operation;
 
     // Parse command-line options
     while ((operationCode = getopt(argc, argv, "c:m:r:")) != -1)
     {
-        char *sourceFile = NULL;
-        char *destinationFile = NULL;
+        operation op;
+        operation_types op_type;
+        string src;
+        string dst;
 
         switch (operationCode)
         {
             case 'c':
                 {
-                    sourceFile = optarg;
+                    op_type = 0;
+                    src = strnew(optarg);
                     if (!(optind < argc))
                     {
                         fprintf(stderr, "Missing second file path argument\n");
                         return 1;
                     }
-                    destinationFile = argv[optind];
-                    operation = NewOperation(0, optarg, argv[optind]);
+                    dst = strnew(argv[optind]);
                     break;
                 }
             case 'm':
                 {
-                    sourceFile = optarg;
+                    op_type = 1;
+                    src = strnew(optarg);
                     if (!(optind < argc))
                     {
                         fprintf(stderr, "Missing second file path argument\n");
                         return 1;
                     }
-                    destinationFile = argv[optind];
-                    operation = NewOperation(1, optarg, argv[optind]);
+                    dst = strnew(argv[optind]);
                     break;
                 }
             case 'r':
                 {
-                    operation = NewOperation(0, optarg, NULL);
+                    op_type = 2;
+                    src = strnew(optarg);
                     break;
                 }
             default:
@@ -199,8 +171,12 @@ int main(int argc, char *argv[])
                 }
         }
 
+        op = opnew(op_type, src.Value, dst.Value);
+
         // Determine which method to call based on the option
-        ExecuteOperation(operation);
+        ExecuteOperation(op);
+
+        opfree(&op);
     }
 
     return 0;
