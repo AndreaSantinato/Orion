@@ -9,175 +9,117 @@
 #include "libs/core.h"
 #include "libs/fileio.h"
 
-/// @brief Perform the provided operation
-/// @param operation Contains all the information for an operation
-void ExecuteOperation(operation operation) 
-{
-    // Perform a set of checks to validate the required operation
-    if (operation.source == NULL && operation.destination == NULL)
-    {
-        perror("No valid source and destination provided!");
-    }
-    else if (operation.source == NULL && operation.destination == NULL)
-    {
-        perror("No valid source provided!");
-    }
-    else if (operation.source == NULL && operation.destination == NULL)
-    {
-        perror("No valid destination provided!");
-    }
-
-    if (operation.type == 0 || operation.type == 1 || operation.type == 2)
-    {
-        //
-        // File Operation Specific Checks 
-        //
-
-        printf("Source: %s \n", operation.source);
-        printf("Destination: %s \n", operation.destination);
-
-        size_t sourceLen = strlen(operation.source);
-        size_t destLen = strlen(operation.destination);
-
-        // Check if destination ends with '/' or is an empty string
-        if (destLen > 0 && (operation.destination[destLen - 1] == '/' || operation.destination[destLen - 1] == '\0'))
-        {
-            const char *lastSlash = strrchr(operation.source, '/');
-
-            if (lastSlash != NULL)
-            {
-                // Calculate the index of the last '/'
-                int lastIndex = lastSlash - operation.source;
-
-                // Extract the substring after the last '/'
-                char *lastPart;
-                SubString(operation.source, lastIndex + 1, sourceLen - lastIndex - 1, &lastPart);
-
-                // Append the extracted substring to the destination
-                char *newDestination;
-                SubString(operation.destination, 0, destLen - 1, &newDestination); // Exclude the trailing '/'
-                strcat(newDestination, "/");
-                strcat(newDestination, lastPart);
-                strcpy(operation.destination, newDestination);
-
-                free(lastPart);
-            }
-            else
-            {
-                strcat(operation.destination, operation.source);
-            }
-        }
-    }
-    else if (operation.type == 3 || operation.type == 4 || operation.type == 5)
-    {
-        //
-        // Directory Operation Specific Checks
-        //
-
-        //
-        // ToDo: Add the validations for the directory management
-        //
-    }
-
-    // After perform the validation checks, perform the required operation on file/directory
-    switch (operation.type)
-    {
-        case 0:
-            {
-                // Copy
-                FileCopy(operation.source, operation.destination);
-                break;
-            }
-        case 1:
-            {
-                // Move
-                FileMove(operation.source, operation.destination);
-                break;
-            }
-        case 2:
-            {
-                // Remove
-                FileRemove(operation.source);
-                break;
-            }
-        case 3:
-            break;
-        case 4:
-            break;
-        case 5:
-            break;
-    }
-}
+/// @brief Contains all the args options of the application
+static struct option long_options[] = {
+    {"move", no_argument, 0, 'm'},
+    {"remove", no_argument, 0, 'r'},
+    {"directory", no_argument, 0, 'd'},
+    {"output", no_argument, 0, 'o'},
+    {"backup", no_argument, 0, 'b'},
+    {0, 0, 0, 0}
+};
 
 /// @brief Main of the program
 /// @param argc Contains the total number of passed arguments
 /// @param argv Contains the values of passed arguments
-/// @return 
-int main(int argc, char *argv[]) 
+/// @return
+int main(int argc, char *argv[])
 {
+    operation_options op_options;
+    char *files[2];
+
     if (argc <= 1) 
     {
         fprintf(stderr, "No arguments provided!\n");
         return 1;
     }
 
-    // Variables Declaration
-    int operationCode = -1;
+    op_options = op_options_init();
 
     // Parse command-line options
-    while ((operationCode = getopt(argc, argv, "c:m:r:")) != -1)
+    int opt = -1;
+    while ((opt = getopt_long(argc, argv, "mrdob", long_options, NULL)) != -1)
     {
-        operation op;
-        operation_types op_type;
-        string src;
-        string dst;
-
-        switch (operationCode)
+        switch (opt)
         {
-            case 'c':
-                {
-                    op_type = 0;
-                    src = strnew(optarg);
-                    if (!(optind < argc))
-                    {
-                        fprintf(stderr, "Missing second file path argument\n");
-                        return 1;
-                    }
-                    dst = strnew(argv[optind]);
-                    break;
-                }
             case 'm':
                 {
-                    op_type = 1;
-                    src = strnew(optarg);
-                    if (!(optind < argc))
-                    {
-                        fprintf(stderr, "Missing second file path argument\n");
-                        return 1;
-                    }
-                    dst = strnew(argv[optind]);
+                    op_options.MoveSource = true;
                     break;
                 }
             case 'r':
                 {
-                    op_type = 2;
-                    src = strnew(optarg);
+                    op_options.RemoveSource = true;
+                    break;
+                }
+            case 'd':
+                {
+                    op_options.IsDirectory = true;
+                    break;
+                }
+            case 'o':
+                {
+                    op_options.OutputPrompt = true;
+                    break;
+                }
+            case 'b':
+                {
+                    op_options.BackupSource = true;
                     break;
                 }
             default:
                 {
-                    fprintf(stderr, "Usage: %s -c source_file destination_file | -m source_file destination_file | -r source_file \n", argv[0]);
-                    return 1;
+                    fprintf(stderr, "Usage: %s [--copy|--move] [--remove] [--directory] source destination\n", argv[0]);
+                    exit(EXIT_FAILURE);
                 }
         }
-
-        op = opnew(op_type, src.Value, dst.Value);
-
-        // Determine which method to call based on the option
-        ExecuteOperation(op);
-
-        opfree(&op);
     }
 
-    return 0;
+    if (argc - optind != 2)
+    {
+        fprintf(stderr, "Usage: %s [-d] [-r] source destination\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    // Indicates the source file/directory
+    files[0] = argv[optind];
+
+    // Indicates the destination file/directory
+    files[1] = argv[optind + 1];
+
+    if (op_options.OutputPrompt)
+    {
+        printf("[Info] Backup Source -> %d\n", op_options.BackupSource);
+        printf("[Info] Is Directory -> %d\n", op_options.IsDirectory);
+        printf("[Info] Move Source -> %d\n", op_options.MoveSource);
+        printf("[Info] Remove Source -> %d\n\n", op_options.RemoveSource);
+    }
+
+    if (!op_options.IsDirectory && !strEndWiths(files[0], '/'))
+    {
+        if (op_options.BackupSource)
+            FileBackup(files[0], op_options.OutputPrompt);
+
+        // File Operations
+        if (!FileCopy(files[0], files[1], op_options.MoveSource, op_options.OutputPrompt))
+        {
+            perror("An error occured during the source file copy!");
+            return EXIT_FAILURE;
+        }
+
+        if (op_options.RemoveSource || op_options.MoveSource)
+        {
+            if (!FileRemove(files[0], op_options.OutputPrompt))
+            {
+                perror("An error occured during the source file remove!");
+                return EXIT_FAILURE;
+            }
+        }
+    }
+    else
+    {
+        // Directory Operations
+    }
+
+    return EXIT_SUCCESS;
 }
