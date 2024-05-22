@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
 #include <string.h>
@@ -18,6 +19,38 @@ static struct option long_options[] = {
     {"backup", no_argument, 0, 'b'},
     {0, 0, 0, 0}
 };
+
+int do_file_operation(char *sourceFile, char *destinationFile, operation_options *options)
+{
+    if (options->BackupSource)
+        FileBackup(sourceFile, options->OutputPrompt);
+
+    if (!FileCopy(sourceFile, destinationFile, options->MoveSource, options->OutputPrompt))
+    {
+        perror("An error occured during the source file copy!");
+        return EXIT_FAILURE;
+    }
+
+    if (options->RemoveSource || options->MoveSource)
+    {
+        if (!FileRemove(sourceFile, options->OutputPrompt))
+        {
+            perror("An error occured during the source file remove!");
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
+int do_directory_operation(char *sourceDirectory, char *destinationDirectory, operation_options *options)
+{
+    //
+    // ToDo: implement the logics here
+    //
+
+    return EXIT_SUCCESS;
+}
 
 /// @brief Main of the program
 /// @param argc Contains the total number of passed arguments
@@ -95,30 +128,16 @@ int main(int argc, char *argv[])
         printf("[Info] Remove Source -> %d\n\n", op_options.RemoveSource);
     }
 
+    int op_status;
     if (!op_options.IsDirectory && !strEndWiths(files[0], '/'))
     {
-        if (op_options.BackupSource)
-            FileBackup(files[0], op_options.OutputPrompt);
-
         // File Operations
-        if (!FileCopy(files[0], files[1], op_options.MoveSource, op_options.OutputPrompt))
-        {
-            perror("An error occured during the source file copy!");
-            return EXIT_FAILURE;
-        }
-
-        if (op_options.RemoveSource || op_options.MoveSource)
-        {
-            if (!FileRemove(files[0], op_options.OutputPrompt))
-            {
-                perror("An error occured during the source file remove!");
-                return EXIT_FAILURE;
-            }
-        }
+        op_status = do_file_operation(files[0], files[1], &op_options);
     }
     else
     {
         // Directory Operations
+        op_status = do_directory_operation(files[0], files[1], &op_options);
     }
 
     return EXIT_SUCCESS;
