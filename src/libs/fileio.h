@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <errno.h>
@@ -15,34 +17,36 @@
 /// @brief Remove the source file fromt the system
 /// @param source Contain the full path of the source file
 /// @return The Status of the operation (0 = Success; 1 = Error)
-bool FileRemove(const char *source, bool output)
+int RemoveFile(const char *source, bool outputOperations)
 {
-    if (0 != remove(source))
+    int op_result = remove(source);
+
+    if (EXIT_SUCCESS != op_result)
     {
-        printf("An error occured during the removing of the %s file!\n", source);
-        return false;
+        PrintOutput(MSG_ERROR, "An error occured during the removing of the %s file!\n", source);
+        return op_result;
     }
 
-    if (output)
-        printf("[Info] File %s Removed\n", source);
+    if (outputOperations)
+        PrintOutput(MSG_INFO, "File %s Removed\n", MSG_INFO, source);
 
-    return true;
+    return EXIT_SUCCESS;
 }
 
 /// @brief This function move a source file into a new destination path
 /// @param source Contains the source file
 /// @param destination Contains the destination File/Path
 /// @return The Status of the operation (0 = Success; 1 = Error)
-bool FileCopy(const char *source, const char *destination, bool isFileMove, bool output)
+int CopyFile(const char *source, const char *destination, bool outputOperations)
 {
-    FILE *sourceFile, *destinationFile;
+    FILE *srcFile, *dstFile;
 
     // Open the source file
-    sourceFile = fopen(source, "r");
-    if (sourceFile == NULL)
+    srcFile = fopen(source, "r");
+    if (NULL == srcFile)
     {
-        perror("No source file provided or found!");
-        return false;
+        PrintOutput(MSG_ERROR, "No source file provided or found!");
+        return EXIT_FAILURE;
     }
 
     char *newDst = NULL;
@@ -55,8 +59,8 @@ bool FileCopy(const char *source, const char *destination, bool isFileMove, bool
         newDst = malloc(strlen(destination) + strlen(name) + 1);
         if (newDst == NULL)
         {
-            perror("Memory allocation failed");
-            fclose(sourceFile);
+            PrintOutput(MSG_ERROR, "Memory allocation failed!");
+            fclose(srcFile);
             return false;
         }
 
@@ -68,50 +72,45 @@ bool FileCopy(const char *source, const char *destination, bool isFileMove, bool
         newDst = strdup(destination);
         if (newDst == NULL)
         {
-            perror("Memory allocation failed");
-            fclose(sourceFile);
+            PrintOutput(MSG_ERROR, "Memory allocation failed!");
+            fclose(srcFile);
             return false;
         }
     }
 
     // Open the destination file
-    destinationFile = fopen(newDst, "w");
-    if (destinationFile == NULL)
+    dstFile = fopen(newDst, "w");
+    if (dstFile == NULL)
     {
-        perror("No destination file provided or found!");
-        fclose(sourceFile);
+        PrintOutput(MSG_ERROR, "No destination file provided or found!");
+        fclose(srcFile);
         free(newDst);
         return false;
     }
 
     // Writing the content of the source file inside the destination file
     char character;
-    while ((character = fgetc(sourceFile)) != EOF)
+    while ( EOF != (character = fgetc(srcFile)) )
     {
-        fputc(character, destinationFile);
+        fputc(character, dstFile);
     }
 
     // Closing the source and destination files
-    fclose(sourceFile);
-    fclose(destinationFile);
+    fclose(srcFile);
+    fclose(dstFile);
 
-    if (output)
-    {
-        if (isFileMove)
-            printf("[Info] Move: %s -> %s\n", source, newDst);
-        else
-            printf("[Info] Copy: %s -> %s\n", source, newDst);
-    }
+    if (outputOperations)
+        PrintOutput(MSG_INFO, "%s -> %s\n", source, newDst);
 
     free(newDst);
 
-    return true;
+    return EXIT_SUCCESS;
 }
 
 /// @brief Create a backup version of the source file
 /// @param source Contain the original source file
 /// @return True/False Status
-bool FileBackup(const char *source, bool output)
+int BackupFile(const char *source, bool outputOperations)
 {
     const char *bakExtension = ".bak";
 
@@ -119,18 +118,34 @@ bool FileBackup(const char *source, bool output)
     strcat(bakFile, source);
     strcat(bakFile, bakExtension);
 
-    bool ok = FileCopy(source, bakFile, false, false);
-
-    if (!ok)
+    if (EXIT_SUCCESS != CopyFile(source, bakFile, false))
     {
-        printf("An error occured during the backup of the %s file!\n", source);
-        return false;
+        PrintOutput(MSG_ERROR, "An error occured during the backup of the %s file!\n", source);
+        return EXIT_FAILURE;
     }
 
-    if (output)
-        printf("[Info] Backup: %s -> %s\n", source, bakFile);
-        
-    return true;
+    if (outputOperations)
+        PrintOutput(MSG_INFO, "Backup: %s -> %s\n", source, bakFile);
+
+    return EXIT_SUCCESS;
+}
+
+/// @brief Create a new empty file inside a destination full path
+/// @param source Contains the full path where the new file will be created
+/// @return 0 = Success; 1 = Error
+int NewEmptyFile(const char *source)
+{
+    // Create the new empty file
+    FILE *file = fopen(source, "wb");
+
+    // Close the file
+    if (EXIT_SUCCESS != fclose(file))
+    {
+        PrintOutput(MSG_ERROR, "An error occurred while closing the new file!");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 /// @brief Create a new empty file inside a destination full path
@@ -138,43 +153,26 @@ bool FileBackup(const char *source, bool output)
 /// @param fileName Contains the name of the new file to create
 /// @param fileName Contains the new created destination path
 /// @return 0 = Success; 1 = Error
-char *newDestinationPath(const char *filePath, const char *fileName)
+char *NewDestinationPath(const char *filePath, const char *fileName)
 {
     char *newPath;
+    size_t filePathLen, fileNameLen, newPathLen;
 
     // Calculate the length of the new path
-    size_t filePathLen = strlen(filePath);
-    size_t fileNameLen = strlen(fileName);
-    size_t newPathLen = filePathLen + fileNameLen + 2; // +2 for the '/' and the null terminator
+    filePathLen = strlen(filePath);
+    fileNameLen = strlen(fileName);
+    newPathLen = filePathLen + fileNameLen + 2; // +2 for the '/' and the null terminator
 
     // Allocate memory for the new path
     newPath[0] = '\0'; // Ensure the newPath is an empty string
     strcat(newPath, filePath);
 
     // If filePath doesn't end with '/', add it
-    if (filePath[filePathLen - 1] != '/')
+    if ('/' != filePath[filePathLen - 1])
         strcat(newPath, "/");
 
     // Append the file name to the new path
     strcat(newPath, fileName);
 
     return newPath;
-}
-
-/// @brief Create a new empty file inside a destination full path
-/// @param source Contains the full path where the new file will be created
-/// @return 0 = Success; 1 = Error
-int CreateEmptyFile(const char *source)
-{
-    // Create the new empty file
-    FILE *file = fopen(source, "wb");
-
-    // Close the file
-    if (fclose(file) != 0)
-    {
-        perror("An error occurred while closing the file!");
-        return 1;
-    }
-
-    return 0;
 }

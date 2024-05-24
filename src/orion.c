@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdarg.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
 #include <string.h>
@@ -23,21 +24,27 @@ static struct option long_options[] = {
 int do_file_operation(char *sourceFile, char *destinationFile, operation_options *options)
 {
     if (options->BackupSource)
-        FileBackup(sourceFile, options->OutputPrompt);
-
-    if (!FileCopy(sourceFile, destinationFile, options->MoveSource, options->OutputPrompt))
     {
-        perror("An error occured during the source file copy!");
-        return EXIT_FAILURE;
+        // Backup the source file inside the source directory
+        if (EXIT_SUCCESS != BackupFile(sourceFile, options->OutputPrompt))
+            return EXIT_FAILURE;
     }
 
-    if (options->RemoveSource || options->MoveSource)
+    if (options->MoveSource)
     {
-        if (!FileRemove(sourceFile, options->OutputPrompt))
-        {
-            perror("An error occured during the source file remove!");
+        // Copy the source file in the destination directory
+        if (EXIT_SUCCESS != CopyFile(sourceFile, destinationFile, options->OutputPrompt))
             return EXIT_FAILURE;
-        }
+
+        // Remove the source file
+        if (EXIT_SUCCESS != RemoveFile(sourceFile, options->OutputPrompt))
+            return EXIT_FAILURE;
+    }
+    else 
+    {
+        // Copy the source file in the destination directory
+        if (EXIT_SUCCESS != CopyFile(sourceFile, destinationFile, options->OutputPrompt))
+            return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
@@ -63,8 +70,8 @@ int main(int argc, char *argv[])
 
     if (argc <= 1) 
     {
-        fprintf(stderr, "No arguments provided!\n");
-        return 1;
+        PrintOutput(MSG_ERROR, "No arguments provided!\n");
+        return EXIT_FAILURE;
     }
 
     op_options = op_options_init();
@@ -110,7 +117,7 @@ int main(int argc, char *argv[])
 
     if (argc - optind != 2)
     {
-        fprintf(stderr, "Usage: %s [-d] [-r] source destination\n", argv[0]);
+        PrintOutput(MSG_WARNING, "Usage: %s [-d] [-r] source destination\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -122,10 +129,11 @@ int main(int argc, char *argv[])
 
     if (op_options.OutputPrompt)
     {
-        printf("[Info] Backup Source -> %d\n", op_options.BackupSource);
-        printf("[Info] Is Directory -> %d\n", op_options.IsDirectory);
-        printf("[Info] Move Source -> %d\n", op_options.MoveSource);
-        printf("[Info] Remove Source -> %d\n\n", op_options.RemoveSource);
+        PrintOutput(MSG_INFO, "Usage: %s [-d] [-r] source destination\n", argv[0]);
+        PrintOutput(MSG_INFO, "Backup Source -> %d\n", op_options.BackupSource);
+        PrintOutput(MSG_INFO, "Is A Directory -> %d\n", op_options.IsDirectory);
+        PrintOutput(MSG_INFO, "Move Source -> %d\n", op_options.MoveSource);
+        PrintOutput(MSG_INFO, "Remove Source -> %d\n\n", op_options.RemoveSource);
     }
 
     int op_status;

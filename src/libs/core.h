@@ -6,12 +6,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
 #include <sys/types.h>
+
+#define MSG_INFO "INFO"
+#define MSG_WARNING "WARN"
+#define MSG_ERROR "ERR"
 
 /// @brief Defines a set of options to provide into an operation
 typedef struct _OperationOptins
@@ -36,6 +41,43 @@ operation_options op_options_init()
     options.RemoveSource = false;
 
     return options;
+}
+
+/// @brief Print an output message to the console
+/// @param type Define the type of the output (Info, Warn, Err)
+/// @param str Contains the message to print
+void PrintOutput(const char *type, const char *str, ...)
+{
+    // Build the prefix of the output
+    size_t prefix_len = strlen(type) + 3; // 3 for "[", "] ", and null terminator
+    char *prefix = malloc(prefix_len);
+    if (prefix == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        return;
+    }
+
+    snprintf(prefix, prefix_len, "[%s] ", type);
+
+    // Build the final output
+    size_t msg_len = prefix_len + strlen(str) + 2; // 2 for ": " and null terminator
+    char *msg = malloc(msg_len);
+    if (msg == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        free(prefix);
+        return;
+    }
+
+    snprintf(msg, msg_len, "%s%s", prefix, str);
+
+    va_list args;
+    va_start(args, str);
+    vprintf(msg, args);
+    va_end(args);
+
+    free(prefix);
+    free(msg);
 }
 
 /// @brief Export a part of the string between a starting point and a specific lenght
