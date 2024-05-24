@@ -1,3 +1,4 @@
+// Stanrdard Libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,6 +9,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <sys/types.h>
+// Custom Libraries
 #include "libs/core.h"
 #include "libs/fileio.h"
 
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    op_options = op_options_init();
+    op_options = InitializeOperationOptions();
 
     // Parse command-line options
     int opt = -1;
