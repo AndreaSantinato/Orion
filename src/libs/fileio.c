@@ -14,12 +14,8 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include "core.h"
-#include "core.h"
 #include "fileio.h"
 
-/// @brief Remove the source file fromt the system
-/// @param source Contain the full path of the source file
-/// @return The Status of the operation (0 = Success; 1 = Error)
 int RemoveFile(const char *source, bool outputOperations)
 {
     int op_result = remove(source);
@@ -36,10 +32,6 @@ int RemoveFile(const char *source, bool outputOperations)
     return EXIT_SUCCESS;
 }
 
-/// @brief This function move a source file into a new destination path
-/// @param source Contains the source file
-/// @param destination Contains the destination File/Path
-/// @return The Status of the operation (0 = Success; 1 = Error)
 int CopyFile(const char *source, const char *destination, bool outputOperations)
 {
     FILE *srcFile, *dstFile;
@@ -110,9 +102,6 @@ int CopyFile(const char *source, const char *destination, bool outputOperations)
     return EXIT_SUCCESS;
 }
 
-/// @brief Create a backup version of the source file
-/// @param source Contain the original source file
-/// @return True/False Status
 int BackupFile(const char *source, bool outputOperations)
 {
     const char *bakExtension = ".bak";
@@ -133,9 +122,6 @@ int BackupFile(const char *source, bool outputOperations)
     return EXIT_SUCCESS;
 }
 
-/// @brief Create a new empty file inside a destination full path
-/// @param source Contains the full path where the new file will be created
-/// @return 0 = Success; 1 = Error
 int NewEmptyFile(const char *source)
 {
     // Create the new empty file
@@ -151,11 +137,6 @@ int NewEmptyFile(const char *source)
     return EXIT_SUCCESS;
 }
 
-/// @brief Create a new empty file inside a destination full path
-/// @param filePath Contains the path where the new file will be created
-/// @param fileName Contains the name of the new file to create
-/// @param fileName Contains the new created destination path
-/// @return 0 = Success; 1 = Error
 char *NewDestinationPath(const char *filePath, const char *fileName)
 {
     char *newPath;

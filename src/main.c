@@ -1,15 +1,6 @@
-// Stanrdard Libraries
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <errno.h>
-#include <string.h>
 #include <getopt.h>
-#include <sys/types.h>
-// Custom Libraries
 #include "libs/core.h"
 #include "libs/fileio.h"
 
@@ -23,7 +14,7 @@ static struct option long_options[] = {
     {0, 0, 0, 0}
 };
 
-int do_file_operation(char *sourceFile, char *destinationFile, operation_options *options)
+int do_file_operation(char *sourceFile, char *destinationFile, Options *options)
 {
     if (options->BackupSource)
     {
@@ -42,7 +33,7 @@ int do_file_operation(char *sourceFile, char *destinationFile, operation_options
         if (EXIT_SUCCESS != RemoveFile(sourceFile, options->OutputPrompt))
             return EXIT_FAILURE;
     }
-    else 
+    else
     {
         // Copy the source file in the destination directory
         if (EXIT_SUCCESS != CopyFile(sourceFile, destinationFile, options->OutputPrompt))
@@ -52,7 +43,7 @@ int do_file_operation(char *sourceFile, char *destinationFile, operation_options
     return EXIT_SUCCESS;
 }
 
-int do_directory_operation(char *sourceDirectory, char *destinationDirectory, operation_options *options)
+int do_directory_operation(char *sourceDirectory, char *destinationDirectory, Options *options)
 {
     //
     // ToDo: implement the logics here
@@ -67,10 +58,10 @@ int do_directory_operation(char *sourceDirectory, char *destinationDirectory, op
 /// @return
 int main(int argc, char *argv[])
 {
-    operation_options op_options;
+    Options op_options;
     char *files[2];
 
-    if (argc <= 1) 
+    if (argc <= 1)
     {
         PrintOutput(MSG_ERROR, "No arguments provided!\n");
         return EXIT_FAILURE;
@@ -84,36 +75,36 @@ int main(int argc, char *argv[])
     {
         switch (opt)
         {
-            case 'm':
-                {
-                    op_options.MoveSource = true;
-                    break;
-                }
-            case 'r':
-                {
-                    op_options.RemoveSource = true;
-                    break;
-                }
-            case 'd':
-                {
-                    op_options.IsDirectory = true;
-                    break;
-                }
-            case 'o':
-                {
-                    op_options.OutputPrompt = true;
-                    break;
-                }
-            case 'b':
-                {
-                    op_options.BackupSource = true;
-                    break;
-                }
-            default:
-                {
-                    fprintf(stderr, "Usage: %s [--copy|--move] [--remove] [--directory] source destination\n", argv[0]);
-                    exit(EXIT_FAILURE);
-                }
+        case 'm':
+        {
+            op_options.MoveSource = true;
+            break;
+        }
+        case 'r':
+        {
+            op_options.RemoveSource = true;
+            break;
+        }
+        case 'd':
+        {
+            op_options.IsDirectory = true;
+            break;
+        }
+        case 'o':
+        {
+            op_options.OutputPrompt = true;
+            break;
+        }
+        case 'b':
+        {
+            op_options.BackupSource = true;
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "Usage: %s [--copy|--move] [--remove] [--directory] source destination\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
         }
     }
 
@@ -150,5 +141,5 @@ int main(int argc, char *argv[])
         op_status = do_directory_operation(files[0], files[1], &op_options);
     }
 
-    return EXIT_SUCCESS;
+    return op_status;
 }
