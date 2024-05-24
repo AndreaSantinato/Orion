@@ -6,6 +6,7 @@
 #ifndef DIRIO_H
 #define DIRIO_H
 
+/// @brief Structure that store all the content of a directory and their total count
 typedef struct DirectoryContent
 {
     int count;
