@@ -1,53 +1,83 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 #include "libs/core.h"
 #include "libs/fileio.h"
+#include "libs/dirio.h"
 
-/// @brief Contains all the args options of the application
-static struct option long_options[] = {
-    {"move", no_argument, 0, 'm'},
-    {"remove", no_argument, 0, 'r'},
-    {"directory", no_argument, 0, 'd'},
-    {"output", no_argument, 0, 'o'},
-    {"backup", no_argument, 0, 'b'},
-    {0, 0, 0, 0}
-};
+    /// @brief Contains all the args options of the application
+    static struct option long_options[] = {
+        {"move", no_argument, 0, 'm'},
+        {"remove", no_argument, 0, 'r'},
+        {"directory", no_argument, 0, 'd'},
+        {"output", no_argument, 0, 'o'},
+        {"backup", no_argument, 0, 'b'},
+        {0, 0, 0, 0}};
 
-int do_file_operation(char *sourceFile, char *destinationFile, Options *options)
+int perform(char *source, char *destination, Options *options)
 {
-    if (options->BackupSource)
+    if (!strEndWiths(source, '/') || strEndWiths(source, '*'))
     {
-        // Backup the source file inside the source directory
-        if (EXIT_SUCCESS != BackupFile(sourceFile, options->OutputPrompt))
-            return EXIT_FAILURE;
-    }
+        if (options->BackupSource)
+        {
+            // Backup the source file inside the source directory
+            if (EXIT_SUCCESS != BackupFile(source, options->OutputPrompt))
+                return EXIT_FAILURE;
+        }
 
-    if (options->MoveSource)
-    {
-        // Copy the source file in the destination directory
-        if (EXIT_SUCCESS != CopyFile(sourceFile, destinationFile, options->OutputPrompt))
-            return EXIT_FAILURE;
+        if (options->MoveSource)
+        {
+            // Copy the source file in the destination directory
+            if (EXIT_SUCCESS != CopyFile(source, destination, options->OutputPrompt))
+                return EXIT_FAILURE;
 
-        // Remove the source file
-        if (EXIT_SUCCESS != RemoveFile(sourceFile, options->OutputPrompt))
-            return EXIT_FAILURE;
+            // Remove the source file
+            if (EXIT_SUCCESS != RemoveFile(source, options->OutputPrompt))
+                return EXIT_FAILURE;
+        }
+        else
+        {
+            // Copy the source file in the destination directory
+            if (EXIT_SUCCESS != CopyFile(source, destination, options->OutputPrompt))
+                return EXIT_FAILURE;
+        }
     }
     else
     {
-        // Copy the source file in the destination directory
-        if (EXIT_SUCCESS != CopyFile(sourceFile, destinationFile, options->OutputPrompt))
-            return EXIT_FAILURE;
+        // Remove the * character from the source if contains it
+        if(strEndWiths(source, '*'))
+            source = strSubString(source, 0, strlen(source) - 2);
+
+        // Retrieve all the content of the specified directory
+        DirectoryContent dir = RetrieveDirectoryContent(source);
+
+        // Perform the required operation for each element
+        for (int i = 0; i < dir.count; i++)
+        {
+            char *originalSrc = malloc(strlen(source));
+            strcpy(originalSrc, source);
+
+            char *newSrc = malloc(strlen(originalSrc) + strlen(dir.items[i]));
+            strcpy(newSrc, originalSrc);
+            strcat(newSrc, dir.items[i]);
+
+            printf("Current File: %s \n", newSrc);
+
+            if (EXIT_SUCCESS != perform(newSrc, destination, options))
+            {
+                free(originalSrc);
+                free(newSrc);
+                return EXIT_FAILURE;
+            }
+
+            free(originalSrc);
+            free(newSrc);
+        }
+
+        // Free all the retrieved directory content
+        FreeDirectoryContent(&dir);
     }
-
-    return EXIT_SUCCESS;
-}
-
-int do_directory_operation(char *sourceDirectory, char *destinationDirectory, Options *options)
-{
-    //
-    // ToDo: implement the logics here
-    //
 
     return EXIT_SUCCESS;
 }
@@ -129,16 +159,13 @@ int main(int argc, char *argv[])
         PrintOutput(MSG_INFO, "Remove Source -> %d\n\n", op_options.RemoveSource);
     }
 
-    int op_status;
-    if (!op_options.IsDirectory && !strEndWiths(files[0], '/'))
+    int op_status = perform(files[0], files[1], &op_options);
+    
+    if (EXIT_FAILURE == op_status)
     {
-        // File Operations
-        op_status = do_file_operation(files[0], files[1], &op_options);
-    }
-    else
-    {
-        // Directory Operations
-        op_status = do_directory_operation(files[0], files[1], &op_options);
+        //
+        // ToDo: Decides what to output
+        //
     }
 
     return op_status;
