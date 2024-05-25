@@ -6,8 +6,7 @@
 #include <libintl.h>
 #include <unistd.h>
 #include "libs/core.h"
-#include "libs/fileio.h"
-#include "libs/dirio.h"
+#include "libs/utils.h"
 
 #define PACKAGE "orion"
 #define LOCALEDIR "/usr/local/share/locale"

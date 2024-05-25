@@ -1,10 +1,17 @@
 // ---------------------------------------------------------
 //      Usr:    Andrea Santinato
-//      Dscr:   File I/O Functions
+//      Dscr:   Utility Functions
 // ---------------------------------------------------------
 
-#ifndef FILEIO_H
-#define FILEIO_H
+#ifndef UTILS_H
+#define UTILS_H
+
+/// @brief Structure that store all the content of a directory and their total count
+typedef struct DirectoryContent
+{
+    int count;
+    char **items;
+} DirectoryContent;
 
 /// @brief Remove the source file fromt the system
 /// @param source Contain the full path of the source file
@@ -35,4 +42,19 @@ int NewEmptyFile(const char *source);
 /// @return 0 = Success; 1 = Error
 char *NewDestinationPath(const char *filePath, const char *fileName);
 
-#endif // FILEIO_H
+/// @brief Retrieve all the content of a source directory
+/// @param source Contains the source directory that store all the files to retrieve
+/// @param items Contains the total number of all the files retrieved
+/// @return A directory structure that store all the required informations
+DirectoryContent RetrieveDirectoryContent(const char *source);
+
+/// @brief Free all the allocated memory for a directory strucutre
+/// @param directory Contains the structure that store all the directory informations
+void FreeDirectoryContent(DirectoryContent *directory);
+
+/// @brief Check if the provided source is a directory or a file
+/// @param source Contains the source to chek
+/// @return A True/False Result
+bool IsSourceDirectory(const char *source);
+
+#endif // UTILS_H
