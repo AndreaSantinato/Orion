@@ -2,44 +2,66 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <locale.h>
+#include <libintl.h>
+#include <unistd.h>
 #include "libs/core.h"
 #include "libs/fileio.h"
 #include "libs/dirio.h"
 
-    /// @brief Contains all the args options of the application
-    static struct option long_options[] = {
-        {"move", no_argument, 0, 'm'},
-        {"remove", no_argument, 0, 'r'},
-        {"directory", no_argument, 0, 'd'},
-        {"output", no_argument, 0, 'o'},
-        {"backup", no_argument, 0, 'b'},
-        {0, 0, 0, 0}};
+#define PACKAGE "orion"
+#define LOCALEDIR "/usr/local/share/locale"
+#define AUTHOR proper_name("Andrea Santinato")
+
+/// @brief Contains all the args options of the application
+static struct option long_options[] = {
+    {"help", no_argument, 0, 'h'},
+    {"backup", optional_argument, 0, 'b'},
+    {"interactive", no_argument, 0, 'i'},
+    {"no-overwrite", no_argument, 0, 'n'},
+    {"file-only", no_argument, 0, 'f'},
+    {"move", no_argument, 0, 'm'},
+    {"output", no_argument, 0, 'o'}
+};
+
+void help()
+{
+    printf("Usage Help Guide\n\n");
+
+    printf("\t Copy File/Directory: %s [OPTION]... SOURCE DESTINATION\n", PACKAGE);
+    printf("\t Move File/Directory: %s [OPTION]... [-m] SOURCE DESTINATION\n", PACKAGE);
+    printf("\t Remove: %s [OPTION]... --remove[SOURCE]\n\n", PACKAGE);
+
+    fputs("\
+        -h, --help                          Display the help guide\n\
+        -b, --backup                        Make a backup of the destination file (or files if destionation is a directory)\n\
+        -b, --backup[SOURCE]                Make a backup of the destination's file\n\
+        -i, --interactive                   Prompt a request to the user before overwriting existing destination file\n\
+        -n, --no-overwrite                  Skip the overwriting of an existing file\n\
+        -f, --file-only                     Copy/Move only files, skipping directories\n\
+        -m, --move                          Move a source file into a destination directory\n\
+        -r, --remove[SOURCE]                Remove a source file\n\
+        -R, --remove-directory[SOURCE]      Remove a source directory and all the content\n\
+        -o, --output                        Print an output for every single operation\
+    ", stdout);
+
+    exit(EXIT_SUCCESS);
+}
 
 int perform(char *source, char *destination, Options *options)
 {
     if (!strEndWiths(source, '/') || strEndWiths(source, '*'))
     {
-        if (options->BackupSource)
-        {
-            // Backup the source file inside the source directory
-            if (EXIT_SUCCESS != BackupFile(source, options->OutputPrompt))
-                return EXIT_FAILURE;
-        }
-
-        if (options->MoveSource)
+        if (options->MoveAll)
         {
             // Copy the source file in the destination directory
-            if (EXIT_SUCCESS != CopyFile(source, destination, options->OutputPrompt))
-                return EXIT_FAILURE;
-
-            // Remove the source file
-            if (EXIT_SUCCESS != RemoveFile(source, options->OutputPrompt))
+            if (EXIT_SUCCESS != MoveFile(source, destination, options))
                 return EXIT_FAILURE;
         }
         else
         {
             // Copy the source file in the destination directory
-            if (EXIT_SUCCESS != CopyFile(source, destination, options->OutputPrompt))
+            if (EXIT_SUCCESS != CopyFile(source, destination, options))
                 return EXIT_FAILURE;
         }
     }
@@ -82,6 +104,16 @@ int perform(char *source, char *destination, Options *options)
     return EXIT_SUCCESS;
 }
 
+void init_op_options(Options *options)
+{
+    options->DisplayOperationOutput = false;
+    options->MakeBackup = false;
+    options->MoveAll = false;
+    options->MoveOnlyFiles = false;
+    options->NoOverwriteFiles = false;
+    options->UserInteraction = false;
+}
+
 /// @brief Main of the program
 /// @param argc Contains the total number of passed arguments
 /// @param argv Contains the values of passed arguments
@@ -92,81 +124,73 @@ int main(int argc, char *argv[])
     char *files[2];
 
     if (argc <= 1)
-    {
-        PrintOutput(MSG_ERROR, "No arguments provided!\n");
-        return EXIT_FAILURE;
-    }
+        help();
 
-    op_options = InitializeOperationOptions();
+    init_op_options(&op_options);
 
     // Parse command-line options
     int opt = -1;
-    while ((opt = getopt_long(argc, argv, "mrdob", long_options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "hbinfmo", long_options, NULL)) != -1)
     {
         switch (opt)
         {
-        case 'm':
-        {
-            op_options.MoveSource = true;
-            break;
-        }
-        case 'r':
-        {
-            op_options.RemoveSource = true;
-            break;
-        }
-        case 'd':
-        {
-            op_options.IsDirectory = true;
-            break;
-        }
-        case 'o':
-        {
-            op_options.OutputPrompt = true;
-            break;
-        }
-        case 'b':
-        {
-            op_options.BackupSource = true;
-            break;
-        }
-        default:
-        {
-            fprintf(stderr, "Usage: %s [--copy|--move] [--remove] [--directory] source destination\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
+            case 'h':
+            {
+                help();
+                break;
+            }
+            case 'b':
+            {
+                op_options.MakeBackup = true;
+
+                //if (optarg)
+                //    backupFile = optarg;
+
+                break;
+            }
+            case 'i':
+            {
+                op_options.UserInteraction = true;
+                break;
+            }
+            case 'n':
+            {
+                op_options.NoOverwriteFiles = true;
+                break;
+            }
+            case 'f':
+            {
+                op_options.MoveOnlyFiles = true;
+                break;
+            }
+            case 'm':
+            {
+                op_options.MoveAll = true;
+                break;
+            }
+            case 'o':
+            {
+                op_options.DisplayOperationOutput = true;
+                break;
+            }
+            default:
+            {
+                help();
+                break;
+            }
         }
     }
 
     if (argc - optind != 2)
-    {
-        PrintOutput(MSG_WARNING, "Usage: %s [-d] [-r] source destination\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
+        help();
 
-    // Indicates the source file/directory
+    // Retrieve the passed source and destination
+    //      - files[0] => Indicates the source file/directory
+    //      - files[1] => Indicates the destination file/directory
     files[0] = argv[optind];
-
-    // Indicates the destination file/directory
     files[1] = argv[optind + 1];
 
-    if (op_options.OutputPrompt)
-    {
-        PrintOutput(MSG_INFO, "Usage: %s [-d] [-r] source destination\n", argv[0]);
-        PrintOutput(MSG_INFO, "Backup Source -> %d\n", op_options.BackupSource);
-        PrintOutput(MSG_INFO, "Is A Directory -> %d\n", op_options.IsDirectory);
-        PrintOutput(MSG_INFO, "Move Source -> %d\n", op_options.MoveSource);
-        PrintOutput(MSG_INFO, "Remove Source -> %d\n\n", op_options.RemoveSource);
-    }
-
     int op_status = perform(files[0], files[1], &op_options);
-    
-    if (EXIT_FAILURE == op_status)
-    {
-        //
-        // ToDo: Decides what to output
-        //
-    }
 
-    return op_status;
+    exit(op_status ? EXIT_SUCCESS : EXIT_FAILURE);
 }

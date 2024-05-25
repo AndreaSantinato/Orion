@@ -16,16 +16,17 @@
 /// @brief Defines a set of options to provide into an operation
 typedef struct Options
 {
-    bool OutputPrompt;
-    bool BackupSource;
-    bool IsDirectory;
-    bool MoveSource;
-    bool RemoveSource;
+    bool MakeBackup;
+    bool UserInteraction;
+    bool NoOverwriteFiles;
+    bool DisplayOperationOutput;
+    bool MoveAll;
+    bool MoveOnlyFiles;
 } Options;
 
-/// @brief Initialize a new operation's options
-/// @return Default Set of Operation's Options
-Options InitializeOperationOptions();
+/// @brief Ask the user to perform an operation and return a status based on the user's response
+/// @return True/False result based on the input
+bool AskUserAuthorizationForOperation(const char *question);
 
 /// @brief Print an output message to the console
 /// @param type Define the type of the output (Info, Warn, Err)

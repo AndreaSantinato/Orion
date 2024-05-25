@@ -16,8 +16,11 @@
 #include "core.h"
 #include "fileio.h"
 
-int RemoveFile(const char *source, bool outputOperations)
+int RemoveFile(const char *source, Options *options)
 {
+    if (options->UserInteraction && !AskUserAuthorizationForOperation("Remove the source file [Y/N]?"))
+        return EXIT_SUCCESS;
+
     int op_result = remove(source);
 
     if (EXIT_SUCCESS != op_result)
@@ -26,13 +29,13 @@ int RemoveFile(const char *source, bool outputOperations)
         return op_result;
     }
 
-    if (outputOperations)
+    if (options->DisplayOperationOutput)
         PrintOutput(MSG_INFO, "File %s Removed\n", MSG_INFO, source);
 
     return EXIT_SUCCESS;
 }
 
-int CopyFile(const char *source, const char *destination, bool outputOperations)
+int CopyFile(const char *source, const char *destination, Options *options)
 {
     FILE *srcFile, *dstFile;
 
@@ -83,6 +86,33 @@ int CopyFile(const char *source, const char *destination, bool outputOperations)
         return false;
     }
 
+    // If required it make a backup of the destination file if it exist
+    if (options->MakeBackup)
+    {
+        const char *bakExtension = ".bak";
+
+        char *bakFile = malloc(strlen(destination) + strlen(bakExtension));
+        strcat(bakFile, destination);
+        strcat(bakFile, bakExtension);
+
+        options->MakeBackup = false;
+
+        if (EXIT_SUCCESS != CopyFile(destination, bakFile, options))
+        {
+            options->MakeBackup = true;
+            PrintOutput(MSG_ERROR, "An error occured during the backup of the %s file!\n", destination);
+            return EXIT_FAILURE;
+        }
+
+        options->MakeBackup = true;
+
+        if (options->DisplayOperationOutput)
+            PrintOutput(MSG_INFO, "Backup: %s -> %s\n", source, bakFile);
+    }
+
+    if (options->UserInteraction && !AskUserAuthorizationForOperation("Proceeds with the copy of the source file [Y/N]?"))
+        return EXIT_SUCCESS;
+
     // Writing the content of the source file inside the destination file
     char character;
     while ( EOF != (character = fgetc(srcFile)) )
@@ -94,7 +124,7 @@ int CopyFile(const char *source, const char *destination, bool outputOperations)
     fclose(srcFile);
     fclose(dstFile);
 
-    if (outputOperations)
+    if (options->DisplayOperationOutput)
         PrintOutput(MSG_INFO, "%s -> %s\n", source, newDst);
 
     free(newDst);
@@ -102,22 +132,15 @@ int CopyFile(const char *source, const char *destination, bool outputOperations)
     return EXIT_SUCCESS;
 }
 
-int BackupFile(const char *source, bool outputOperations)
+int MoveFile(const char *source, const char *destination, Options *options)
 {
-    const char *bakExtension = ".bak";
-
-    char *bakFile = malloc(strlen(source) + strlen(bakExtension));
-    strcat(bakFile, source);
-    strcat(bakFile, bakExtension);
-
-    if (EXIT_SUCCESS != CopyFile(source, bakFile, false))
-    {
-        PrintOutput(MSG_ERROR, "An error occured during the backup of the %s file!\n", source);
+    // Copy the source fikle inside the the destination path/file
+    if (EXIT_SUCCESS != CopyFile(source, destination, options))
         return EXIT_FAILURE;
-    }
 
-    if (outputOperations)
-        PrintOutput(MSG_INFO, "Backup: %s -> %s\n", source, bakFile);
+    // Remove the source file
+    if (EXIT_SUCCESS != RemoveFile(source, options))
+        return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }

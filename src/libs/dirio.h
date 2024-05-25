@@ -23,4 +23,9 @@ DirectoryContent RetrieveDirectoryContent(const char *source);
 /// @param directory Contains the structure that store all the directory informations
 void FreeDirectoryContent(DirectoryContent *directory);
 
+/// @brief Check if the provided source is a directory or a file
+/// @param source Contains the source to chek
+/// @return A True/False Result
+bool IsSourceDirectory(const char *source);
+
 #endif // DIRIO_H

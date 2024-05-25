@@ -9,17 +9,22 @@
 #include <string.h>
 #include "core.h"
 
-Options InitializeOperationOptions()
+bool AskUserAuthorizationForOperation(const char *question)
 {
-    Options options;
+    char *response = malloc(2);
 
-    options.OutputPrompt = false;
-    options.BackupSource = false;
-    options.IsDirectory = false;
-    options.MoveSource = false;
-    options.RemoveSource = false;
+    printf("%s", question);
+    scanf("%1s", response); // Use %1s to read a single character as a string
 
-    return options;
+    // Check the user's response
+    if (response[0] == 'n' || response[0] == 'N')
+    {
+        free(response);
+        return false;
+    }
+
+    free(response);
+    return true;
 }
 
 void PrintOutput(const char *type, const char *str, ...)

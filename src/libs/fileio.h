@@ -9,18 +9,19 @@
 /// @brief Remove the source file fromt the system
 /// @param source Contain the full path of the source file
 /// @return The Status of the operation (0 = Success; 1 = Error)
-int RemoveFile(const char *source, bool outputOperations);
+int RemoveFile(const char *source, Options *options);
 
-/// @brief This function move a source file into a new destination path
+/// @brief This function copy a source file inside a destination path
 /// @param source Contains the source file
 /// @param destination Contains the destination File/Path
 /// @return The Status of the operation (0 = Success; 1 = Error)
-int CopyFile(const char *source, const char *destination, bool outputOperations);
+int CopyFile(const char *source, const char *destination, Options *options);
 
-/// @brief Create a backup version of the source file
-/// @param source Contain the original source file
-/// @return True/False Status
-int BackupFile(const char *source, bool outputOperations);
+/// @brief This function move a source file inside a destination path
+/// @param source Contains the source file
+/// @param destination Contains the destination File/Path
+/// @return The Status of the operation (0 = Success; 1 = Error)
+int MoveFile(const char *source, const char *destination, Options *options);
 
 /// @brief Create a new empty file inside a destination full path
 /// @param source Contains the full path where the new file will be created
@@ -35,4 +36,3 @@ int NewEmptyFile(const char *source);
 char *NewDestinationPath(const char *filePath, const char *fileName);
 
 #endif // FILEIO_H
-
