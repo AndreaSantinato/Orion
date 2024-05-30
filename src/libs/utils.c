@@ -1,6 +1,6 @@
 // ---------------------------------------------------------
 //      Usr:    Andrea Santinato
-//      Dscr:   File I/O Functions
+//      Dscr:   Utility Functions
 // ---------------------------------------------------------
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ int CopyFile(const char *source, const char *destination, Options *options)
     srcFile = fopen(source, "r");
     if (NULL == srcFile)
     {
-        PrintOutput(MSG_ERROR, "No source file provided or found!");
+        PrintOutput(MSG_ERROR, "No source file provided or found!\n");
         return EXIT_FAILURE;
     }
 
@@ -56,11 +56,11 @@ int CopyFile(const char *source, const char *destination, Options *options)
         const char *name = (lastSlash != NULL) ? lastSlash + 1 : source;
 
         newDst = malloc(strlen(destination) + strlen(name) + 1);
-        if (newDst == NULL)
+        if (NULL == newDst)
         {
-            PrintOutput(MSG_ERROR, "Memory allocation failed!");
+            PrintOutput(MSG_ERROR, "Memory allocation failed!\n");
             fclose(srcFile);
-            return false;
+            return EXIT_FAILURE;
         }
 
         strcpy(newDst, destination);
@@ -69,19 +69,25 @@ int CopyFile(const char *source, const char *destination, Options *options)
     else
     {
         newDst = strdup(destination);
-        if (newDst == NULL)
+        if (NULL == newDst)
         {
-            PrintOutput(MSG_ERROR, "Memory allocation failed!");
+            PrintOutput(MSG_ERROR, "Memory allocation failed!\n");
             fclose(srcFile);
-            return false;
+            return EXIT_FAILURE;
         }
     }
 
-    // Open the destination file
+    if (options->NoOverwriteFiles && 0 == access(newDst, F_OK))
+    {
+        PrintOutput(MSG_ERROR, "Operation not allowed, destination file already exist!\n");
+        return EXIT_FAILURE;
+    }
+
+        // Open the destination file
     dstFile = fopen(newDst, "w");
     if (dstFile == NULL)
     {
-        PrintOutput(MSG_ERROR, "No destination file provided or found!");
+        PrintOutput(MSG_ERROR, "No destination file provided or found!\n");
         fclose(srcFile);
         free(newDst);
         return false;
